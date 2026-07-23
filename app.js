@@ -1,12 +1,303 @@
-// Visualisasi & Tabel Halaman Remaja (Termasuk Chart IMT & Tekanan Darah)
+// CONFIGURATION
+const SPREADSHEET_ID = "1ZIHwVZpAKzliSOM3rYmRIi7tumXoqD3TwdXJQXcDiU0";
+const ENCODED_SHEET_URL =
+  "aHR0cHM6Ly9kb2NzLmdvb2dsZS5jb20vc3ByZWFkc2hlZXRzL2QvMVpJSHdWWnBBS3psaVNPTTNyWW1SSWk3dHVtWG9xRDNUd2RYSlFYY0RpVTAvZWRpdD91c3A9c2hhcmluZw==";
+
+let dataset = [];
+let charts = {};
+
+// Cek status Admin
+function checkAdminStatus() {
+  return sessionStorage.getItem("isAdmin") === "true";
+}
+
+// Helper untuk parsing JSON GViz dari Google Sheets
+function parseGVizData(text, fallbackHeaders) {
+  try {
+    const startIdx = text.indexOf("{");
+    const endIdx = text.lastIndexOf("}");
+    if (startIdx === -1 || endIdx === -1) return [];
+
+    const jsonString = text.substring(startIdx, endIdx + 1);
+    const jsonData = JSON.parse(jsonString);
+    const table = jsonData.table;
+
+    if (!table || !table.rows) return [];
+
+    // Tentukan Nama Header Kolom
+    const cols = table.cols.map((col, idx) => {
+      if (col && col.label && col.label.trim() !== "") {
+        return col.label.trim().toUpperCase().replace(/\s+/g, "_");
+      }
+      return fallbackHeaders[idx] || `COL_${idx}`;
+    });
+
+    return table.rows
+      .map((row) => {
+        if (!row || !row.c) return null;
+        let obj = {};
+        row.c.forEach((cell, idx) => {
+          let colName = cols[idx];
+          let val = "";
+          if (cell && cell.v !== null && cell.v !== undefined) {
+            val = cell.f ? cell.f : cell.v;
+          }
+          obj[colName] = val.toString().trim();
+        });
+        return obj;
+      })
+      .filter((row) => row && row.ID_WARGA && row.ID_WARGA !== "");
+  } catch (err) {
+    console.error("Gagal parse data GViz:", err);
+    return [];
+  }
+}
+
+// Fetch Data dari 2 Tabel (warga & pemeriksaan)
+async function loadSheetData() {
+  const urlWarga = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=warga&tqx=out:json`;
+  const urlPemeriksaan = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=pemeriksaan&tqx=out:json`;
+
+  try {
+    const [resWarga, resPemeriksaan] = await Promise.all([
+      fetch(urlWarga),
+      fetch(urlPemeriksaan),
+    ]);
+
+    const textWarga = await resWarga.text();
+    const textPemeriksaan = await resPemeriksaan.text();
+
+    const dataWarga = parseGVizData(textWarga, [
+      "ID_WARGA",
+      "NAMA_LENGKAP",
+      "JK",
+      "USIA",
+      "KATEGORI",
+      "LAST_UPDATED",
+    ]);
+
+    const dataPemeriksaan = parseGVizData(textPemeriksaan, [
+      "ID_WARGA",
+      "IMT",
+      "TEKANAN_DARAH",
+      "KATEGORI_IMT",
+      "KATEGORI_TD",
+      "TANGGAL_PERIKSA",
+    ]);
+
+    // 1. FILTER PEMERIKSAAN TERAKHIR (LATEST EXAMINATION) PER ID_WARGA
+    const mapPemeriksaanTerakhir = {};
+
+    dataPemeriksaan.forEach((p) => {
+      if (!p.ID_WARGA) return;
+      const idKey = p.ID_WARGA.toUpperCase();
+
+      // Parse tanggal pemeriksaan (jika tidak ada/invalid, anggap waktu terkecil)
+      const tglBaru = p.TANGGAL_PERIKSA
+        ? new Date(p.TANGGAL_PERIKSA)
+        : new Date(0);
+
+      if (!mapPemeriksaanTerakhir[idKey]) {
+        // Jika warga belum ada di map, simpan data pemeriksaan ini
+        mapPemeriksaanTerakhir[idKey] = p;
+      } else {
+        // Jika sudah ada, bandingkan tanggalnya. Ambil yang lebih baru/terakhir
+        const tglLama = mapPemeriksaanTerakhir[idKey].TANGGAL_PERIKSA
+          ? new Date(mapPemeriksaanTerakhir[idKey].TANGGAL_PERIKSA)
+          : new Date(0);
+
+        // Jika tanggal baru lebih tinggi atau tanggal sama tetapi urutan di sheet lebih bawah
+        if (tglBaru >= tglLama) {
+          mapPemeriksaanTerakhir[idKey] = p;
+        }
+      }
+    });
+
+    // 2. GABUNGKAN DATA WARGA DENGAN PEMERIKSAAN BULAN TERAKHIR
+    dataset = dataWarga.map((w) => {
+      const idKey = (w.ID_WARGA || "").toUpperCase();
+      const p = mapPemeriksaanTerakhir[idKey] || {};
+
+      return {
+        ...w,
+        IMT: p.IMT || p.NILAI_IMT || p.KATEGORI_IMT || "",
+        KATEGORI_IMT: p.KATEGORI_IMT || p.STATUS_IMT || "",
+        TEKANAN_DARAH: p.TEKANAN_DARAH || p.TD || p.SISTOL_DIASTOL || "",
+        KATEGORI_TD: p.KATEGORI_TD || p.STATUS_TD || "",
+        LAST_UPDATED:
+          p.TANGGAL_PERIKSA || p.LAST_UPDATED || w.LAST_UPDATED || "",
+      };
+    });
+
+    console.log("Data Terbaru Berhasil Dimuat:", dataset);
+    renderCurrentPageData();
+  } catch (err) {
+    console.error("Gagal memuat data:", err);
+  }
+}
+
+// Render data sesuai halaman
+function renderCurrentPageData() {
+  const isAdmin = checkAdminStatus();
+  updateUIState(isAdmin);
+
+  const lansia = dataset.filter(
+    (d) => (d.KATEGORI || "").toLowerCase() === "lansia",
+  );
+  const remaja = dataset.filter(
+    (d) => (d.KATEGORI || "").toLowerCase() === "remaja",
+  );
+
+  // Dashboard Utama
+  if (document.getElementById("stat-total")) {
+    document.getElementById("stat-total").innerText = dataset.length;
+    document.getElementById("stat-lansia").innerText = lansia.length;
+    document.getElementById("stat-remaja").innerText = remaja.length;
+    renderDashboardCharts(lansia.length, remaja.length);
+  }
+
+  // Halaman Lansia
+  if (document.getElementById("table-lansia-body")) {
+    renderLansiaView(lansia);
+  }
+
+  // Halaman Remaja
+  if (document.getElementById("table-remaja-body")) {
+    renderRemajaView(remaja);
+  }
+}
+
+// Update UI Banner & Status Admin
+function updateUIState(isAdmin) {
+  const banner = document.getElementById("admin-banner");
+  if (banner) {
+    if (isAdmin) banner.classList.remove("hidden");
+    else banner.classList.add("hidden");
+  }
+
+  const btnText = document.getElementById("admin-btn-text");
+  if (btnText) {
+    btnText.innerText = isAdmin ? "Panel Admin" : "Login Admin";
+  }
+
+  const loginCard = document.getElementById("admin-login-card");
+  const panelCard = document.getElementById("admin-panel-card");
+  if (loginCard && panelCard) {
+    if (isAdmin) {
+      loginCard.classList.add("hidden");
+      panelCard.classList.remove("hidden");
+    } else {
+      loginCard.classList.remove("hidden");
+      panelCard.classList.add("hidden");
+    }
+  }
+}
+
+// Visualisasi Dashboard Utama
+function renderDashboardCharts(lansiaCount, remajaCount) {
+  const canvasKategori = document.getElementById("chart-kategori");
+  if (canvasKategori) {
+    if (charts.kategori) charts.kategori.destroy();
+    charts.kategori = new Chart(canvasKategori, {
+      type: "doughnut",
+      data: {
+        labels: ["Lansia", "Remaja"],
+        datasets: [
+          {
+            data: [lansiaCount, remajaCount],
+            backgroundColor: ["#4f46e5", "#0284c7"],
+          },
+        ],
+      },
+      options: { responsive: true, maintainAspectRatio: false },
+    });
+  }
+
+  const lCount = dataset.filter(
+    (d) => (d.JK || "").toUpperCase() === "L",
+  ).length;
+  const pCount = dataset.filter(
+    (d) => (d.JK || "").toUpperCase() === "P",
+  ).length;
+
+  const canvasGender = document.getElementById("chart-gender");
+  if (canvasGender) {
+    if (charts.gender) charts.gender.destroy();
+    charts.gender = new Chart(canvasGender, {
+      type: "pie",
+      data: {
+        labels: ["Laki-laki (L)", "Perempuan (P)"],
+        datasets: [
+          { data: [lCount, pCount], backgroundColor: ["#10b981", "#f43f5e"] },
+        ],
+      },
+      options: { responsive: true, maintainAspectRatio: false },
+    });
+  }
+}
+
+// Visualisasi Halaman Lansia
+function renderLansiaView(lansiaData) {
+  const tbody = document.getElementById("table-lansia-body");
+  if (tbody) {
+    tbody.innerHTML =
+      lansiaData
+        .map(
+          (item) => `
+      <tr class="border-b border-slate-100 hover:bg-slate-50">
+        <td class="p-3 font-semibold text-slate-700">${item.ID_WARGA}</td>
+        <td class="p-3">${item.NAMA_LENGKAP || "-"}</td>
+        <td class="p-3">${item.JK || "-"}</td>
+        <td class="p-3">${item.USIA ? item.USIA + " th" : "-"}</td>
+        <td class="p-3 text-xs text-slate-400">${item.LAST_UPDATED || "-"}</td>
+      </tr>
+    `,
+        )
+        .join("") ||
+      `<tr><td colspan="5" class="p-4 text-center text-slate-400">Tidak ada data lansia</td></tr>`;
+  }
+
+  const lCount = lansiaData.filter(
+    (d) => (d.JK || "").toUpperCase() === "L",
+  ).length;
+  const pCount = lansiaData.filter(
+    (d) => (d.JK || "").toUpperCase() === "P",
+  ).length;
+
+  const canvasLansiaGender = document.getElementById("chart-lansia-gender");
+  if (canvasLansiaGender) {
+    if (charts.lansiaGender) charts.lansiaGender.destroy();
+    charts.lansiaGender = new Chart(canvasLansiaGender, {
+      type: "bar",
+      data: {
+        labels: ["Laki-laki", "Perempuan"],
+        datasets: [
+          {
+            label: "Jumlah Lansia",
+            data: [lCount, pCount],
+            backgroundColor: ["#6366f1", "#ec4899"],
+          },
+        ],
+      },
+      options: { responsive: true, maintainAspectRatio: false },
+    });
+  }
+}
+
+// Visualisasi & Tabel Halaman Remaja
+// Visualisasi & Tabel Halaman Remaja
 function renderRemajaView(remajaData) {
   // 1. Update Kartu Ringkasan
   const elTotal = document.getElementById("stat-remaja-total");
   const elL = document.getElementById("stat-remaja-l");
   const elP = document.getElementById("stat-remaja-p");
 
-  const lCount = remajaData.filter((d) => d.JK === "L").length;
-  const pCount = remajaData.filter((d) => d.JK === "P").length;
+  const lCount = remajaData.filter(
+    (d) => (d.JK || "").toUpperCase() === "L"
+  ).length;
+  const pCount = remajaData.filter(
+    (d) => (d.JK || "").toUpperCase() === "P"
+  ).length;
 
   if (elTotal) elTotal.innerText = remajaData.length;
   if (elL) elL.innerText = lCount;
@@ -25,16 +316,16 @@ function renderRemajaView(remajaData) {
         <td class="p-3">${item.JK || "-"}</td>
         <td class="p-3">${item.USIA ? item.USIA + " th" : "-"}</td>
         <td class="p-3">${item.IMT || item.KATEGORI_IMT || "-"}</td>
-        <td class="p-3">${item.TEKANAN_DARAH || item.TD || "-"}</td>
+        <td class="p-3">${item.TEKANAN_DARAH || item.KATEGORI_TD || "-"}</td>
         <td class="p-3 text-xs text-slate-400">${item.LAST_UPDATED || "-"}</td>
       </tr>
-    `,
+    `
         )
         .join("") ||
       `<tr><td colspan="7" class="p-4 text-center text-slate-400">Tidak ada data remaja</td></tr>`;
   }
 
-  // 3. Diagram Jenis Kelamin
+  // 3. Render Diagram Batang: Jenis Kelamin Remaja
   const canvasGender = document.getElementById("chart-remaja-gender");
   if (canvasGender) {
     if (charts.remajaGender) charts.remajaGender.destroy();
@@ -60,7 +351,7 @@ function renderRemajaView(remajaData) {
     });
   }
 
-  // 4. Diagram Kelompok Usia
+  // 4. Render Diagram Doughnut: Kelompok Usia Remaja
   const canvasUsia = document.getElementById("chart-remaja-usia");
   if (canvasUsia) {
     let kelUsia = {
@@ -105,7 +396,7 @@ function renderRemajaView(remajaData) {
     });
   }
 
-  // 5. Diagram Kategori IMT (Indeks Massa Tubuh)
+  // 5. Render Chart IMT
   const canvasImt = document.getElementById("chart-remaja-imt");
   if (canvasImt) {
     let imtData = {
@@ -115,10 +406,9 @@ function renderRemajaView(remajaData) {
       "Obesitas (≥30)": 0,
       "Belum Diukur": 0,
     };
-
     remajaData.forEach((d) => {
-      const kat = (d.KATEGORI_IMT || d.IMT_STATUS || "").toLowerCase();
-      const val = parseFloat(d.IMT || d.NILAI_IMT);
+      const kat = (d.KATEGORI_IMT || "").toLowerCase();
+      const val = parseFloat(d.IMT);
 
       if (kat.includes("kurang") || kat.includes("underweight") || val < 18.5)
         imtData["Underweight (<18.5)"]++;
@@ -161,7 +451,7 @@ function renderRemajaView(remajaData) {
     });
   }
 
-  // 6. Diagram Kategori Tekanan Darah
+  // 6. Render Chart Tekanan Darah
   const canvasTd = document.getElementById("chart-remaja-td");
   if (canvasTd) {
     let tdData = {
@@ -171,32 +461,27 @@ function renderRemajaView(remajaData) {
       "Hipertensi (≥140/90)": 0,
       "Belum Diukur": 0,
     };
-
     remajaData.forEach((d) => {
-      const kat = (d.KATEGORI_TD || d.STATUS_TD || "").toLowerCase();
-      const rawTd = (d.TEKANAN_DARAH || d.TD || "").toString();
+      const kat = (d.KETERANGAN || "").toLowerCase();
+      const rawTd = (d.KETERANGAN || "").toString();
 
-      if (kat.includes("hipo") || kat.includes("rendah")) {
+      if (kat.includes("hipo") || kat.includes("rendah"))
         tdData["Hipotensi (<90/60)"]++;
-      } else if (kat.includes("normal")) {
-        tdData["Normal (90-120/60-80)"]++;
-      } else if (kat.includes("pre") || kat.includes("sedang")) {
+      else if (kat.includes("normal")) tdData["Normal (90-120/60-80)"]++;
+      else if (kat.includes("pre") || kat.includes("sedang"))
         tdData["Pre-Hipertensi (120-139/80-89)"]++;
-      } else if (kat.includes("hiper") || kat.includes("tinggi")) {
+      else if (kat.includes("hiper") || kat.includes("tinggi"))
         tdData["Hipertensi (≥140/90)"]++;
-      } else if (rawTd.includes("/")) {
+      else if (rawTd.includes("/")) {
         const parts = rawTd.split("/").map((x) => parseFloat(x.trim()));
         const sys = parts[0];
         const dia = parts[1];
-
         if (sys < 90 || dia < 60) tdData["Hipotensi (<90/60)"]++;
         else if (sys <= 120 && dia <= 80) tdData["Normal (90-120/60-80)"]++;
         else if (sys <= 139 || dia <= 89)
           tdData["Pre-Hipertensi (120-139/80-89)"]++;
         else tdData["Hipertensi (≥140/90)"]++;
-      } else {
-        tdData["Belum Diukur"]++;
-      }
+      } else tdData["Belum Diukur"]++;
     });
 
     if (charts.remajaTd) charts.remajaTd.destroy();
@@ -234,3 +519,38 @@ function renderRemajaView(remajaData) {
     });
   }
 }
+
+// Authentication
+function handleLogin(e) {
+  e.preventDefault();
+  const u = document.getElementById("username").value;
+  const p = document.getElementById("password").value;
+
+  if (u === "admin" && p === "jaten123") {
+    sessionStorage.setItem("isAdmin", "true");
+    document.getElementById("login-error")?.classList.add("hidden");
+    window.location.href = "index.html";
+  } else {
+    document.getElementById("login-error")?.classList.remove("hidden");
+  }
+}
+
+function logoutAdmin() {
+  sessionStorage.removeItem("isAdmin");
+  updateUIState(false);
+  window.location.href = "index.html";
+}
+
+function openSpreadsheet() {
+  if (checkAdminStatus()) {
+    const sheetUrl = atob(ENCODED_SHEET_URL);
+    window.open(sheetUrl, "_blank");
+  } else {
+    alert("Akses ditolak. Anda harus login sebagai admin!");
+  }
+}
+
+// Initializer
+window.addEventListener("DOMContentLoaded", () => {
+  loadSheetData();
+});
