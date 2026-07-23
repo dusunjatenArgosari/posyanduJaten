@@ -81,8 +81,8 @@ async function loadSheetData() {
       "IMT",
       "TEKANAN_DARAH",
       "KATEGORI_IMT",
-      "KATEGORI_TD",
-      "TANGGAL_PERIKSA",
+      "KETERANGAN",
+      "TANGGAL_PEMERIKSAAN",
     ]);
 
     // 1. FILTER PEMERIKSAAN TERAKHIR (LATEST EXAMINATION) PER ID_WARGA
@@ -92,28 +92,30 @@ async function loadSheetData() {
       if (!p.ID_WARGA) return;
       const idKey = p.ID_WARGA.toUpperCase();
 
-      // Parse tanggal pemeriksaan (jika tidak ada/invalid, anggap waktu terkecil)
-      const tglBaru = p.TANGGAL_PERIKSA
-        ? new Date(p.TANGGAL_PERIKSA)
-        : new Date(0);
-
+      // Jika ada tanggal periksa, bandingkan tanggal
+      // Jika tidak ada tanggal/tanggal sama, entri di baris bawah akan selalu menimpa entri di atasnya
       if (!mapPemeriksaanTerakhir[idKey]) {
-        // Jika warga belum ada di map, simpan data pemeriksaan ini
         mapPemeriksaanTerakhir[idKey] = p;
       } else {
-        // Jika sudah ada, bandingkan tanggalnya. Ambil yang lebih baru/terakhir
-        const tglLama = mapPemeriksaanTerakhir[idKey].TANGGAL_PERIKSA
-          ? new Date(mapPemeriksaanTerakhir[idKey].TANGGAL_PERIKSA)
-          : new Date(0);
+        const tglBaru = p.TANGGAL_PEMERIKSAAN
+          ? new Date(p.TANGGAL_PEMERIKSAAN)
+          : null;
+        const tglLama = mapPemeriksaanTerakhir[idKey].TANGGAL_PEMERIKSAAN
+          ? new Date(mapPemeriksaanTerakhir[idKey].TANGGAL_PEMERIKSAAN)
+          : null;
 
-        // Jika tanggal baru lebih tinggi atau tanggal sama tetapi urutan di sheet lebih bawah
-        if (tglBaru >= tglLama) {
+        if (tglBaru && tglLama) {
+          if (tglBaru >= tglLama) {
+            mapPemeriksaanTerakhir[idKey] = p; // Timpa jika tanggal lebih baru atau sama
+          }
+        } else {
+          // Jika tidak ada tanggal resmi, otomatis gunakan entri paling bawah di sheet
           mapPemeriksaanTerakhir[idKey] = p;
         }
       }
     });
 
-    // 2. GABUNGKAN DATA WARGA DENGAN PEMERIKSAAN BULAN TERAKHIR
+    // 2. GABUNGKAN DATA WARGA DENGAN PEMERIKSAAN TERAKHIR TIAP ORANG
     dataset = dataWarga.map((w) => {
       const idKey = (w.ID_WARGA || "").toUpperCase();
       const p = mapPemeriksaanTerakhir[idKey] || {};
@@ -122,14 +124,17 @@ async function loadSheetData() {
         ...w,
         IMT: p.IMT || p.NILAI_IMT || p.KATEGORI_IMT || "",
         KATEGORI_IMT: p.KATEGORI_IMT || p.STATUS_IMT || "",
-        TEKANAN_DARAH: p.TEKANAN_DARAH || p.TD || p.SISTOL_DIASTOL || "",
-        KATEGORI_TD: p.KATEGORI_TD || p.STATUS_TD || "",
+        TEKANAN_DARAH: p.KETERANGAN || p.TD || p.SISTOL_DIASTOL || "",
+        KETERANGAN: p.KETERANGAN || "",
         LAST_UPDATED:
-          p.TANGGAL_PERIKSA || p.LAST_UPDATED || w.LAST_UPDATED || "",
+          p.TANGGAL_PEMERIKSAAN || p.LAST_UPDATED || w.LAST_UPDATED || "",
       };
     });
 
-    console.log("Data Terbaru Berhasil Dimuat:", dataset);
+    console.log(
+      "Data Pemeriksaan Terakhir Per-Orang Berhasil Dimuat:",
+      dataset,
+    );
     renderCurrentPageData();
   } catch (err) {
     console.error("Gagal memuat data:", err);
@@ -293,10 +298,10 @@ function renderRemajaView(remajaData) {
   const elP = document.getElementById("stat-remaja-p");
 
   const lCount = remajaData.filter(
-    (d) => (d.JK || "").toUpperCase() === "L"
+    (d) => (d.JK || "").toUpperCase() === "L",
   ).length;
   const pCount = remajaData.filter(
-    (d) => (d.JK || "").toUpperCase() === "P"
+    (d) => (d.JK || "").toUpperCase() === "P",
   ).length;
 
   if (elTotal) elTotal.innerText = remajaData.length;
@@ -319,7 +324,7 @@ function renderRemajaView(remajaData) {
         <td class="p-3">${item.TEKANAN_DARAH || item.KATEGORI_TD || "-"}</td>
         <td class="p-3 text-xs text-slate-400">${item.LAST_UPDATED || "-"}</td>
       </tr>
-    `
+    `,
         )
         .join("") ||
       `<tr><td colspan="7" class="p-4 text-center text-slate-400">Tidak ada data remaja</td></tr>`;
@@ -420,7 +425,7 @@ function renderRemajaView(remajaData) {
         (val >= 25 && val <= 29.9)
       )
         imtData["Overweight (25-29.9)"]++;
-      else if (kat.includes("obesitas") || val >= 30)
+      else if (kat.includes("(obesitas)") || val >= 30)
         imtData["Obesitas (≥30)"]++;
       else imtData["Belum Diukur"]++;
     });
