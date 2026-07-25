@@ -11,7 +11,6 @@ function checkAdminStatus() {
   return sessionStorage.getItem("isAdmin") === "true";
 }
 
-// Helper untuk parsing JSON GViz dari Google Sheets
 function parseGVizData(text, fallbackHeaders) {
   try {
     const startIdx = text.indexOf("{");
@@ -26,6 +25,7 @@ function parseGVizData(text, fallbackHeaders) {
 
     // Tentukan Nama Header Kolom
     const cols = table.cols.map((col, idx) => {
+      // Prioritaskan label dari sheet jika ada, jika tidak gunakan fallback
       if (col && col.label && col.label.trim() !== "") {
         return col.label.trim().toUpperCase().replace(/\s+/g, "_");
       }
@@ -40,7 +40,8 @@ function parseGVizData(text, fallbackHeaders) {
           let colName = cols[idx];
           let val = "";
           if (cell && cell.v !== null && cell.v !== undefined) {
-            val = cell.f ? cell.f : cell.v;
+            // Mengambil formatted value (.f) jika ada, atau raw value (.v)
+            val = cell.f !== undefined ? cell.f : cell.v;
           }
           obj[colName] = val.toString().trim();
         });
@@ -74,6 +75,7 @@ async function loadSheetData() {
       "USIA",
       "KATEGORI",
       "LAST_UPDATED",
+      "RT",
     ]);
 
     const dataPemeriksaan = parseGVizData(textPemeriksaan, [
