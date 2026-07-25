@@ -11,6 +11,7 @@ function checkAdminStatus() {
   return sessionStorage.getItem("isAdmin") === "true";
 }
 
+// Helper parsing JSON GViz yang lebih akurat
 function parseGVizData(text, fallbackHeaders) {
   try {
     const startIdx = text.indexOf("{");
@@ -23,31 +24,32 @@ function parseGVizData(text, fallbackHeaders) {
 
     if (!table || !table.rows) return [];
 
-    // Tentukan Nama Header Kolom
+    // Tentukan nama kolom berdasarkan label GViz atau fallback array
     const cols = table.cols.map((col, idx) => {
-      // Prioritaskan label dari sheet jika ada, jika tidak gunakan fallback
       if (col && col.label && col.label.trim() !== "") {
         return col.label.trim().toUpperCase().replace(/\s+/g, "_");
       }
-      return fallbackHeaders[idx] || `COL_${idx}`;
+      return (fallbackHeaders[idx] || `COL_${idx}`).toUpperCase();
     });
 
-    return table.rows
-      .map((row) => {
-        if (!row || !row.c) return null;
-        let obj = {};
-        row.c.forEach((cell, idx) => {
-          let colName = cols[idx];
-          let val = "";
-          if (cell && cell.v !== null && cell.v !== undefined) {
-            // Mengambil formatted value (.f) jika ada, atau raw value (.v)
-            val = cell.f !== undefined ? cell.f : cell.v;
-          }
-          obj[colName] = val.toString().trim();
-        });
-        return obj;
-      })
-      .filter((row) => row && row.ID_WARGA && row.ID_WARGA !== "");
+    return (
+      table.rows
+        .map((row) => {
+          if (!row || !row.c) return null;
+          let obj = {};
+          row.c.forEach((cell, idx) => {
+            let colName = cols[idx];
+            let val = "";
+            if (cell && cell.v !== null && cell.v !== undefined) {
+              val = cell.f !== undefined ? cell.f : cell.v;
+            }
+            obj[colName] = val.toString().trim();
+          });
+          return obj;
+        })
+        // Ambil row yang memiliki ID_WARGA valid
+        .filter((row) => row && row.ID_WARGA && row.ID_WARGA !== "")
+    );
   } catch (err) {
     console.error("Gagal parse data GViz:", err);
     return [];
@@ -261,18 +263,20 @@ function renderLansiaView(lansiaData) {
   // Render Isi Tabel
   const tbody = document.getElementById("table-lansia-body");
   if (tbody && isAdmin) {
+    // Pada renderLansiaView
     tbody.innerHTML =
       lansiaData
         .map(
           (item) => `
-      <tr class="border-b border-slate-100 hover:bg-slate-50">
-        <td class="p-3 font-semibold text-slate-700">${item.ID_WARGA}</td>
-        <td class="p-3">${item.NAMA_LENGKAP || "-"}</td>
-        <td class="p-3">${item.JK || "-"}</td>
-        <td class="p-3">${item.USIA ? item.USIA + " th" : "-"}</td>
-        <td class="p-3 text-xs text-slate-400">${item.LAST_UPDATED || "-"}</td>
-      </tr>
-    `,
+  <tr class="border-b border-slate-100 hover:bg-slate-50">
+    <td class="p-3 font-semibold text-slate-700">${item.ID_WARGA}</td>
+    <td class="p-3">${item.NAMA_LENGKAP || "-"}</td>
+    <td class="p-3">${item.JK || "-"}</td>
+    <td class="p-3">${item.USIA ? item.USIA + " thn" : "-"}</td>
+    <td class="p-3"><span class="px-2 py-1 bg-slate-100 rounded text-xs">RT ${item.RT || "-"}</span></td>
+    <td class="p-3 text-xs text-slate-400">${item.LAST_UPDATED || "-"}</td>
+  </tr>
+`,
         )
         .join("") ||
       `<tr><td colspan="5" class="p-4 text-center text-slate-400">Tidak ada data lansia</td></tr>`;
@@ -351,6 +355,7 @@ function renderRemajaView(remajaData) {
         <td class="p-3">${item.USIA ? item.USIA + " th" : "-"}</td>
         <td class="p-3">${item.IMT || item.KATEGORI_IMT || "-"}</td>
         <td class="p-3">${item.TEKANAN_DARAH || item.KATEGORI_TD || "-"}</td>
+        <td class="p-3"><span class="px-2 py-1 bg-slate-100 rounded text-xs">RT ${item.RT || "-"}</span></td>
         <td class="p-3 text-xs text-slate-400">${item.LAST_UPDATED || "-"}</td>
       </tr>
     `,
