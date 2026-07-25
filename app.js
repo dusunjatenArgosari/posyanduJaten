@@ -157,20 +157,30 @@ function renderCurrentPageData() {
     (d) => (d.KATEGORI || "").toLowerCase() === "remaja",
   );
 
-  // Dashboard Utama
+  // Hitung berapa warga yang sudah memiliki catatan pemeriksaan
+  const terperiksa = dataset.filter(
+    (d) => d.LAST_UPDATED && d.LAST_UPDATED !== "",
+  ).length;
+
+  // 1. Dashboard Utama
   if (document.getElementById("stat-total")) {
     document.getElementById("stat-total").innerText = dataset.length;
     document.getElementById("stat-lansia").innerText = lansia.length;
     document.getElementById("stat-remaja").innerText = remaja.length;
+    if (document.getElementById("stat-terperiksa")) {
+      document.getElementById("stat-terperiksa").innerText = terperiksa;
+    }
+
     renderDashboardCharts(lansia.length, remaja.length);
+    renderRecentActivityTable();
   }
 
-  // Halaman Lansia
+  // 2. Halaman Lansia
   if (document.getElementById("table-lansia-body")) {
     renderLansiaView(lansia);
   }
 
-  // Halaman Remaja
+  // 3. Halaman Remaja
   if (document.getElementById("table-remaja-body")) {
     renderRemajaView(remaja);
   }
@@ -202,8 +212,42 @@ function updateUIState(isAdmin) {
   }
 }
 
+function renderRecentActivityTable() {
+  const tbody = document.getElementById("table-dashboard-recent");
+  if (!tbody) return;
+
+  // Urutkan warga berdasarkan LAST_UPDATED
+  const recentData = [...dataset]
+    .filter((d) => d.LAST_UPDATED && d.LAST_UPDATED !== "")
+    .slice(0, 5);
+
+  if (recentData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada aktivitas pemeriksaan</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = recentData
+    .map(
+      (item) => `
+      <tr class="border-b border-slate-100 hover:bg-slate-50">
+        <td class="p-3 font-semibold text-slate-700">${item.ID_WARGA}</td>
+        <td class="p-3">
+          <div class="font-medium text-slate-800">${item.NAMA_LENGKAP || "Warga"}</div>
+          <div class="text-xs text-slate-400">${item.KATEGORI || "-"} (${item.JK || "-"})</div>
+        </td>
+        <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">RT ${item.RT || "-"}</span></td>
+        <td class="p-3"><span class="font-semibold ${item.IMT ? "text-indigo-600" : "text-slate-400"}">${item.IMT || "-"}</span></td>
+        <td class="p-3">${item.TEKANAN_DARAH || "-"}</td>
+        <td class="p-3 text-xs text-slate-400">${item.LAST_UPDATED}</td>
+      </tr>
+    `,
+    )
+    .join("");
+}
+
 // Visualisasi Dashboard Utama
 function renderDashboardCharts(lansiaCount, remajaCount) {
+  // Chart 1: Kategori Warga (Doughnut)
   const canvasKategori = document.getElementById("chart-kategori");
   if (canvasKategori) {
     if (charts.kategori) charts.kategori.destroy();
@@ -215,13 +259,19 @@ function renderDashboardCharts(lansiaCount, remajaCount) {
           {
             data: [lansiaCount, remajaCount],
             backgroundColor: ["#4f46e5", "#0284c7"],
+            borderWidth: 0,
           },
         ],
       },
-      options: { responsive: true, maintainAspectRatio: false },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } },
+      },
     });
   }
 
+  // Chart 2: Gender Warga (Pie)
   const lCount = dataset.filter(
     (d) => (d.JK || "").toUpperCase() === "L",
   ).length;
@@ -237,10 +287,62 @@ function renderDashboardCharts(lansiaCount, remajaCount) {
       data: {
         labels: ["Laki-laki (L)", "Perempuan (P)"],
         datasets: [
-          { data: [lCount, pCount], backgroundColor: ["#10b981", "#f43f5e"] },
+          {
+            data: [lCount, pCount],
+            backgroundColor: ["#10b981", "#f43f5e"],
+            borderWidth: 0,
+          },
         ],
       },
-      options: { responsive: true, maintainAspectRatio: false },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } },
+      },
+    });
+  }
+
+  // Chart 3: Summary Status IMT Gabungan (Bar)
+  const canvasDashImt = document.getElementById("chart-dashboard-imt");
+  if (canvasDashImt) {
+    let imtSummary = { Normal: 0, "Kurang / Lebih": 0, "Belum Diukur": 0 };
+
+    dataset.forEach((d) => {
+      const kat = (d.KATEGORI_IMT || "").toLowerCase();
+      if (kat.includes("normal")) imtSummary["Normal"]++;
+      else if (
+        kat.includes("kurang") ||
+        kat.includes("underweight") ||
+        kat.includes("lebih") ||
+        kat.includes("overweight") ||
+        kat.includes("obesitas")
+      ) {
+        imtSummary["Kurang / Lebih"]++;
+      } else {
+        imtSummary["Belum Diukur"]++;
+      }
+    });
+
+    if (charts.dashImt) charts.dashImt.destroy();
+    charts.dashImt = new Chart(canvasDashImt, {
+      type: "bar",
+      data: {
+        labels: Object.keys(imtSummary),
+        datasets: [
+          {
+            label: "Jumlah Warga",
+            data: Object.values(imtSummary),
+            backgroundColor: ["#10b981", "#f59e0b", "#cbd5e1"],
+            borderRadius: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      },
     });
   }
 }
