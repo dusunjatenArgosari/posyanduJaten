@@ -267,34 +267,57 @@
       </div>
 
       <!-- Table Remaja -->
-      <div
-        class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden"
-      >
+      <!-- Section Tabel Data Warga Remaja -->
+      <div class="mt-8">
+        <!-- Pesan Pengingat untuk Guest (Belum Login) -->
         <div
-          class="p-4 border-b border-slate-100 font-bold text-slate-700 flex justify-between items-center"
+          id="guest-notice-remaja"
+          class="hidden bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-center"
         >
-          <span>Daftar Warga Remaja</span>
-          <span class="text-xs font-normal text-slate-400"
-            >Sumber: Google Sheets</span
+          <p class="font-semibold text-sm">
+            <i class="fa-solid fa-lock mr-2"></i>Daftar nama dan Rincian Data
+            Warga dibatasi.
+          </p>
+          <p class="text-xs text-amber-600 mt-1">
+            Silakan login sebagai Admin/Kader Posyandu untuk melihat tabel data
+            lengkap.
+          </p>
+          <a
+            href="admin.html"
+            class="inline-block mt-3 px-4 py-2 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition"
           >
+            Login Admin
+          </a>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-600">
-            <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
-              <tr>
-                <th class="p-3">ID Warga</th>
-                <th class="p-3">Nama Lengkap</th>
-                <th class="p-3">JK</th>
-                <th class="p-3">Usia</th>
-                <th class="p-3">IMT / Status</th>
-                <th class="p-3">Tekanan Darah</th>
-                <th class="p-3">Terakhir Diperbarui</th>
-              </tr>
-            </thead>
-            <tbody id="table-remaja-body">
-              <!-- Terisi dinamis -->
-            </tbody>
-          </table>
+
+        <!-- Container Tabel (Akan ditampilkan HANYA jika Admin) -->
+        <div
+          id="container-table-remaja"
+          class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden"
+        >
+          <div
+            class="p-4 border-b border-slate-100 flex justify-between items-center"
+          >
+            <h3 class="font-bold text-slate-700">Daftar Warga Remaja</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+              <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                <tr>
+                  <th class="p-3">ID Warga</th>
+                  <th class="p-3">Nama Lengkap</th>
+                  <th class="p-3">JK</th>
+                  <th class="p-3">Usia</th>
+                  <th class="p-3">IMT</th>
+                  <th class="p-3">Tekanan Darah</th>
+                  <th class="p-3">Pemeriksaan Terakhir</th>
+                </tr>
+              </thead>
+              <tbody id="table-remaja-body">
+                <!-- Diisi via app.js -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </main>
