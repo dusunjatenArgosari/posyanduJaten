@@ -653,7 +653,6 @@ function renderRemajaView(remajaData) {
   }
 }
 
-// Authentication
 // Authentication via Vercel Serverless Function
 async function handleLogin(e) {
   e.preventDefault();
@@ -672,7 +671,7 @@ async function handleLogin(e) {
 
     const result = await response.json();
 
-    if (response.ok && result.success) {
+    if (result.success) {
       // Simpan session & token
       sessionStorage.setItem("isAdmin", "true");
       sessionStorage.setItem("adminToken", result.token);
@@ -681,6 +680,7 @@ async function handleLogin(e) {
       // Redirect ke dashboard utama
       window.location.href = "index.html";
     } else {
+      // Tampilkan pesan error pada UI jika username/password salah
       if (errEl) {
         errEl.innerText = result.message || "Login gagal!";
         errEl.classList.remove("hidden");
