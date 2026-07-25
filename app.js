@@ -241,10 +241,24 @@ function renderDashboardCharts(lansiaCount, remajaCount) {
   }
 }
 
-// Visualisasi Halaman Lansia
+// Visualisasi & Tabel Halaman Lansia
 function renderLansiaView(lansiaData) {
+  const isAdmin = checkAdminStatus();
+  const tableContainer = document.getElementById("container-table-lansia");
+  const guestNotice = document.getElementById("guest-notice-lansia");
+
+  // Kontrol Akses Fitur Daftar Warga Lansia
+  if (isAdmin) {
+    if (tableContainer) tableContainer.classList.remove("hidden");
+    if (guestNotice) guestNotice.classList.add("hidden");
+  } else {
+    if (tableContainer) tableContainer.classList.add("hidden");
+    if (guestNotice) guestNotice.classList.remove("hidden");
+  }
+
+  // Render Isi Tabel
   const tbody = document.getElementById("table-lansia-body");
-  if (tbody) {
+  if (tbody && isAdmin) {
     tbody.innerHTML =
       lansiaData
         .map(
@@ -262,6 +276,7 @@ function renderLansiaView(lansiaData) {
       `<tr><td colspan="5" class="p-4 text-center text-slate-400">Tidak ada data lansia</td></tr>`;
   }
 
+  // Render Chart Lansia (tetap bisa dilihat Guest jika diinginkan)
   const lCount = lansiaData.filter(
     (d) => (d.JK || "").toUpperCase() === "L",
   ).length;
@@ -290,8 +305,20 @@ function renderLansiaView(lansiaData) {
 }
 
 // Visualisasi & Tabel Halaman Remaja
-// Visualisasi & Tabel Halaman Remaja
 function renderRemajaView(remajaData) {
+  const isAdmin = checkAdminStatus();
+  const tableContainer = document.getElementById("container-table-remaja");
+  const guestNotice = document.getElementById("guest-notice-remaja");
+
+  // Kontrol Akses Fitur Daftar Warga Remaja
+  if (isAdmin) {
+    if (tableContainer) tableContainer.classList.remove("hidden");
+    if (guestNotice) guestNotice.classList.add("hidden");
+  } else {
+    if (tableContainer) tableContainer.classList.add("hidden");
+    if (guestNotice) guestNotice.classList.remove("hidden");
+  }
+
   // 1. Update Kartu Ringkasan
   const elTotal = document.getElementById("stat-remaja-total");
   const elL = document.getElementById("stat-remaja-l");
@@ -308,9 +335,9 @@ function renderRemajaView(remajaData) {
   if (elL) elL.innerText = lCount;
   if (elP) elP.innerText = pCount;
 
-  // 2. Render Tabel Remaja
+  // 2. Render Tabel Remaja (Hanya jika Admin)
   const tbody = document.getElementById("table-remaja-body");
-  if (tbody) {
+  if (tbody && isAdmin) {
     tbody.innerHTML =
       remajaData
         .map(
