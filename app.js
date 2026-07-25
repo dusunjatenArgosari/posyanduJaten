@@ -523,20 +523,175 @@ function renderRemajaView(remajaData) {
       },
     });
   }
+  // 5. Chart IMT berdasarkan Jenis Kelamin (Grouped Bar Chart)
+  const canvasImtGender = document.getElementById("chart-remaja-imt-gender");
+  if (canvasImtGender) {
+    const categories = [
+      "Underweight",
+      "Normal",
+      "Overweight",
+      "Obesitas",
+      "Belum Diukur",
+    ];
+    let imtL = [0, 0, 0, 0, 0];
+    let imtP = [0, 0, 0, 0, 0];
+
+    remajaData.forEach((d) => {
+      const kat = (d.KATEGORI_IMT || "").toLowerCase();
+      const val = parseFloat(d.IMT);
+      const isLaki = (d.JK || "").toUpperCase() === "L";
+      let idx = 4; // Default: Belum Diukur
+
+      if (kat.includes("kurang") || kat.includes("underweight") || val < 18.5)
+        idx = 0;
+      else if (kat.includes("normal") || (val >= 18.5 && val <= 24.9)) idx = 1;
+      else if (
+        kat.includes("lebih") ||
+        kat.includes("overweight") ||
+        (val >= 25 && val <= 29.9)
+      )
+        idx = 2;
+      else if (kat.includes("obesitas") || val >= 30) idx = 3;
+
+      if (isLaki) imtL[idx]++;
+      else imtP[idx]++;
+    });
+
+    if (charts.remajaImtGender) charts.remajaImtGender.destroy();
+    charts.remajaImtGender = new Chart(canvasImtGender, {
+      type: "bar",
+      data: {
+        labels: categories,
+        datasets: [
+          {
+            label: "Laki-laki (L)",
+            data: imtL,
+            backgroundColor: "#0284c7",
+            borderRadius: 4,
+          },
+          {
+            label: "Perempuan (P)",
+            data: imtP,
+            backgroundColor: "#f43f5e",
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      },
+    });
+  }
+
+  // 6. Chart Tekanan Darah berdasarkan Jenis Kelamin (Grouped Bar Chart)
+  const canvasTdGender = document.getElementById("chart-remaja-td-gender");
+  if (canvasTdGender) {
+    const categoriesTd = [
+      "Hipotensi",
+      "Normal",
+      "Pre-Hipertensi",
+      "Hipertensi",
+      "Belum Diukur",
+    ];
+    let tdL = [0, 0, 0, 0, 0];
+    let tdP = [0, 0, 0, 0, 0];
+
+    remajaData.forEach((d) => {
+      const kat = (d.KETERANGAN || "").toLowerCase();
+      const rawTd = (d.KETERANGAN || "").toString();
+      const isLaki = (d.JK || "").toUpperCase() === "L";
+      let idx = 4; // Default: Belum Diukur
+
+      if (kat.includes("hipo") || kat.includes("rendah")) idx = 0;
+      else if (kat.includes("normal")) idx = 1;
+      else if (kat.includes("pre") || kat.includes("sedang")) idx = 2;
+      else if (kat.includes("hiper") || kat.includes("tinggi")) idx = 3;
+      else if (rawTd.includes("/")) {
+        const parts = rawTd.split("/").map((x) => parseFloat(x.trim()));
+        const sys = parts[0];
+        const dia = parts[1];
+        if (sys < 90 || dia < 60) idx = 0;
+        else if (sys <= 120 && dia <= 80) idx = 1;
+        else if (sys <= 139 || dia <= 89) idx = 2;
+        else idx = 3;
+      }
+
+      if (isLaki) tdL[idx]++;
+      else tdP[idx]++;
+    });
+
+    if (charts.remajaTdGender) charts.remajaTdGender.destroy();
+    charts.remajaTdGender = new Chart(canvasTdGender, {
+      type: "bar",
+      data: {
+        labels: categoriesTd,
+        datasets: [
+          {
+            label: "Laki-laki (L)",
+            data: tdL,
+            backgroundColor: "#0284c7",
+            borderRadius: 4,
+          },
+          {
+            label: "Perempuan (P)",
+            data: tdP,
+            backgroundColor: "#f43f5e",
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      },
+    });
+  }
 }
 
 // Authentication
-function handleLogin(e) {
+// Authentication via Vercel Serverless Function
+async function handleLogin(e) {
   e.preventDefault();
   const u = document.getElementById("username").value;
   const p = document.getElementById("password").value;
+  const errEl = document.getElementById("login-error");
 
-  if (u === "admin" && p === "jaten123") {
-    sessionStorage.setItem("isAdmin", "true");
-    document.getElementById("login-error")?.classList.add("hidden");
-    window.location.href = "index.html";
-  } else {
-    document.getElementById("login-error")?.classList.remove("hidden");
+  try {
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username: u, password: p }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      // Simpan session & token
+      sessionStorage.setItem("isAdmin", "true");
+      sessionStorage.setItem("adminToken", result.token);
+      if (errEl) errEl.classList.add("hidden");
+
+      // Redirect ke dashboard utama
+      window.location.href = "index.html";
+    } else {
+      if (errEl) {
+        errEl.innerText = result.message || "Login gagal!";
+        errEl.classList.remove("hidden");
+      }
+    }
+  } catch (err) {
+    console.error("Error login:", err);
+    if (errEl) {
+      errEl.innerText = "Terjadi kesalahan koneksi ke server.";
+      errEl.classList.remove("hidden");
+    }
   }
 }
 
