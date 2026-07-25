@@ -245,13 +245,12 @@ function renderDashboardCharts(lansiaCount, remajaCount) {
   }
 }
 
-// Visualisasi & Tabel Halaman Lansia
 function renderLansiaView(lansiaData) {
   const isAdmin = checkAdminStatus();
   const tableContainer = document.getElementById("container-table-lansia");
   const guestNotice = document.getElementById("guest-notice-lansia");
 
-  // Kontrol Akses Fitur Daftar Warga Lansia
+  // Access Control Tabel
   if (isAdmin) {
     if (tableContainer) tableContainer.classList.remove("hidden");
     if (guestNotice) guestNotice.classList.add("hidden");
@@ -260,29 +259,11 @@ function renderLansiaView(lansiaData) {
     if (guestNotice) guestNotice.classList.remove("hidden");
   }
 
-  // Render Isi Tabel
-  const tbody = document.getElementById("table-lansia-body");
-  if (tbody && isAdmin) {
-    // Pada renderLansiaView
-    tbody.innerHTML =
-      lansiaData
-        .map(
-          (item) => `
-  <tr class="border-b border-slate-100 hover:bg-slate-50">
-    <td class="p-3 font-semibold text-slate-700">${item.ID_WARGA}</td>
-    <td class="p-3">${item.NAMA_LENGKAP || "-"}</td>
-    <td class="p-3">${item.JK || "-"}</td>
-    <td class="p-3">${item.USIA ? item.USIA + " thn" : "-"}</td>
-    <td class="p-3"><span class="px-2 py-1 bg-slate-100 rounded text-xs">RT ${item.RT || "-"}</span></td>
-    <td class="p-3 text-xs text-slate-400">${item.LAST_UPDATED || "-"}</td>
-  </tr>
-`,
-        )
-        .join("") ||
-      `<tr><td colspan="5" class="p-4 text-center text-slate-400">Tidak ada data lansia</td></tr>`;
-  }
+  // 1. Ringkasan Statistik Kartu
+  const elTotal = document.getElementById("stat-lansia-total");
+  const elL = document.getElementById("stat-lansia-l");
+  const elP = document.getElementById("stat-lansia-p");
 
-  // Render Chart Lansia (tetap bisa dilihat Guest jika diinginkan)
   const lCount = lansiaData.filter(
     (d) => (d.JK || "").toUpperCase() === "L",
   ).length;
@@ -290,22 +271,343 @@ function renderLansiaView(lansiaData) {
     (d) => (d.JK || "").toUpperCase() === "P",
   ).length;
 
-  const canvasLansiaGender = document.getElementById("chart-lansia-gender");
-  if (canvasLansiaGender) {
+  if (elTotal) elTotal.innerText = lansiaData.length;
+  if (elL) elL.innerText = lCount;
+  if (elP) elP.innerText = pCount;
+
+  // 2. Render Tabel Data
+  const tbody = document.getElementById("table-lansia-body");
+  if (tbody && isAdmin) {
+    tbody.innerHTML =
+      lansiaData
+        .map(
+          (item) => `
+      <tr class="border-b border-slate-100 hover:bg-slate-50">
+        <td class="p-3 font-semibold text-slate-700">${item.ID_WARGA}</td>
+        <td class="p-3">${item.NAMA_LENGKAP || "-"}</td>
+        <td class="p-3">${item.JK || "-"}</td>
+        <td class="p-3">${item.USIA ? item.USIA + " th" : "-"}</td>
+        <td class="p-3"><span class="px-2 py-1 bg-slate-100 rounded text-xs">RT ${item.RT || "-"}</span></td>
+        <td class="p-3 text-xs text-slate-400">${item.LAST_UPDATED || "-"}</td>
+      </tr>
+    `,
+        )
+        .join("") ||
+      `<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada data lansia</td></tr>`;
+  }
+
+  // 3. Chart Gender Lansia (Bar Chart)
+  const canvasGender = document.getElementById("chart-lansia-gender");
+  if (canvasGender) {
     if (charts.lansiaGender) charts.lansiaGender.destroy();
-    charts.lansiaGender = new Chart(canvasLansiaGender, {
+    charts.lansiaGender = new Chart(canvasGender, {
       type: "bar",
       data: {
-        labels: ["Laki-laki", "Perempuan"],
+        labels: ["Laki-laki (L)", "Perempuan (P)"],
         datasets: [
           {
             label: "Jumlah Lansia",
             data: [lCount, pCount],
-            backgroundColor: ["#6366f1", "#ec4899"],
+            backgroundColor: ["#4f46e5", "#ec4899"],
+            borderRadius: 6,
           },
         ],
       },
-      options: { responsive: true, maintainAspectRatio: false },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      },
+    });
+  }
+
+  // 4. Chart Kelompok Usia Lansia (Doughnut Chart)
+  const canvasUsia = document.getElementById("chart-lansia-usia");
+  if (canvasUsia) {
+    let kelUsia = {
+      "60 - 69 th": 0,
+      "70 - 79 th": 0,
+      "≥ 80 th": 0,
+      "Belum terisi": 0,
+    };
+    lansiaData.forEach((d) => {
+      const u = parseFloat(d.USIA);
+      if (isNaN(u) || d.USIA === "") kelUsia["Belum terisi"]++;
+      else if (u < 70) kelUsia["60 - 69 th"]++;
+      else if (u < 80) kelUsia["70 - 79 th"]++;
+      else kelUsia["≥ 80 th"]++;
+    });
+
+    if (charts.lansiaUsia) charts.lansiaUsia.destroy();
+    charts.lansiaUsia = new Chart(canvasUsia, {
+      type: "doughnut",
+      data: {
+        labels: Object.keys(kelUsia),
+        datasets: [
+          {
+            data: Object.values(kelUsia),
+            backgroundColor: ["#6366f1", "#818cf8", "#a5b4fc", "#cbd5e1"],
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } },
+      },
+    });
+  }
+
+  // 5. Chart IMT Lansia (Pie Chart)
+  const canvasImt = document.getElementById("chart-lansia-imt");
+  if (canvasImt) {
+    let imtData = {
+      "Underweight (<18.5)": 0,
+      "Normal (18.5-24.9)": 0,
+      "Overweight (25-29.9)": 0,
+      "Obesitas (≥30)": 0,
+      "Belum Diukur": 0,
+    };
+    lansiaData.forEach((d) => {
+      const kat = (d.KATEGORI_IMT || "").toLowerCase();
+      const val = parseFloat(d.IMT);
+
+      if (kat.includes("kurang") || kat.includes("underweight") || val < 18.5)
+        imtData["Underweight (<18.5)"]++;
+      else if (kat.includes("normal") || (val >= 18.5 && val <= 24.9))
+        imtData["Normal (18.5-24.9)"]++;
+      else if (
+        kat.includes("lebih") ||
+        kat.includes("overweight") ||
+        (val >= 25 && val <= 29.9)
+      )
+        imtData["Overweight (25-29.9)"]++;
+      else if (kat.includes("obesitas") || val >= 30)
+        imtData["Obesitas (≥30)"]++;
+      else imtData["Belum Diukur"]++;
+    });
+
+    if (charts.lansiaImt) charts.lansiaImt.destroy();
+    charts.lansiaImt = new Chart(canvasImt, {
+      type: "pie",
+      data: {
+        labels: Object.keys(imtData),
+        datasets: [
+          {
+            data: Object.values(imtData),
+            backgroundColor: [
+              "#38bdf8",
+              "#10b981",
+              "#f59e0b",
+              "#ef4444",
+              "#cbd5e1",
+            ],
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } },
+      },
+    });
+  }
+
+  // 6. Chart IMT Berdasarkan Gender (Grouped Bar Chart)
+  const canvasImtGender = document.getElementById("chart-lansia-imt-gender");
+  if (canvasImtGender) {
+    const categories = [
+      "Underweight",
+      "Normal",
+      "Overweight",
+      "Obesitas",
+      "Belum Diukur",
+    ];
+    let imtL = [0, 0, 0, 0, 0];
+    let imtP = [0, 0, 0, 0, 0];
+
+    lansiaData.forEach((d) => {
+      const kat = (d.KATEGORI_IMT || "").toLowerCase();
+      const val = parseFloat(d.IMT);
+      const isLaki = (d.JK || "").toUpperCase() === "L";
+      let idx = 4;
+
+      if (kat.includes("kurang") || kat.includes("underweight") || val < 18.5)
+        idx = 0;
+      else if (kat.includes("normal") || (val >= 18.5 && val <= 24.9)) idx = 1;
+      else if (
+        kat.includes("lebih") ||
+        kat.includes("overweight") ||
+        (val >= 25 && val <= 29.9)
+      )
+        idx = 2;
+      else if (kat.includes("obesitas") || val >= 30) idx = 3;
+
+      if (isLaki) imtL[idx]++;
+      else imtP[idx]++;
+    });
+
+    if (charts.lansiaImtGender) charts.lansiaImtGender.destroy();
+    charts.lansiaImtGender = new Chart(canvasImtGender, {
+      type: "bar",
+      data: {
+        labels: categories,
+        datasets: [
+          {
+            label: "Laki-laki (L)",
+            data: imtL,
+            backgroundColor: "#4f46e5",
+            borderRadius: 4,
+          },
+          {
+            label: "Perempuan (P)",
+            data: imtP,
+            backgroundColor: "#ec4899",
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      },
+    });
+  }
+
+  // 7. Chart Tekanan Darah Lansia (Bar Chart)
+  const canvasTd = document.getElementById("chart-lansia-td");
+  if (canvasTd) {
+    let tdData = {
+      "Hipotensi (<90/60)": 0,
+      "Normal (90-120/60-80)": 0,
+      "Pre-Hipertensi (120-139/80-89)": 0,
+      "Hipertensi (≥140/90)": 0,
+      "Belum Diukur": 0,
+    };
+    lansiaData.forEach((d) => {
+      const kat = (d.KETERANGAN || "").toLowerCase();
+      const rawTd = (d.KETERANGAN || "").toString();
+
+      if (kat.includes("hipo") || kat.includes("rendah"))
+        tdData["Hipotensi (<90/60)"]++;
+      else if (kat.includes("normal")) tdData["Normal (90-120/60-80)"]++;
+      else if (kat.includes("pre") || kat.includes("sedang"))
+        tdData["Pre-Hipertensi (120-139/80-89)"]++;
+      else if (kat.includes("hiper") || kat.includes("tinggi"))
+        tdData["Hipertensi (≥140/90)"]++;
+      else if (rawTd.includes("/")) {
+        const parts = rawTd.split("/").map((x) => parseFloat(x.trim()));
+        const sys = parts[0];
+        const dia = parts[1];
+        if (sys < 90 || dia < 60) tdData["Hipotensi (<90/60)"]++;
+        else if (sys <= 120 && dia <= 80) tdData["Normal (90-120/60-80)"]++;
+        else if (sys <= 139 || dia <= 89)
+          tdData["Pre-Hipertensi (120-139/80-89)"]++;
+        else tdData["Hipertensi (≥140/90)"]++;
+      } else tdData["Belum Diukur"]++;
+    });
+
+    if (charts.lansiaTd) charts.lansiaTd.destroy();
+    charts.lansiaTd = new Chart(canvasTd, {
+      type: "bar",
+      data: {
+        labels: [
+          "Hipotensi",
+          "Normal",
+          "Pre-Hipertensi",
+          "Hipertensi",
+          "Belum Diukur",
+        ],
+        datasets: [
+          {
+            label: "Jumlah Lansia",
+            data: Object.values(tdData),
+            backgroundColor: [
+              "#38bdf8",
+              "#10b981",
+              "#f59e0b",
+              "#ef4444",
+              "#94a3b8",
+            ],
+            borderRadius: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      },
+    });
+  }
+
+  // 8. Chart Tekanan Darah Berdasarkan Gender (Grouped Bar Chart)
+  const canvasTdGender = document.getElementById("chart-lansia-td-gender");
+  if (canvasTdGender) {
+    const categoriesTd = [
+      "Hipotensi",
+      "Normal",
+      "Pre-Hipertensi",
+      "Hipertensi",
+      "Belum Diukur",
+    ];
+    let tdL = [0, 0, 0, 0, 0];
+    let tdP = [0, 0, 0, 0, 0];
+
+    lansiaData.forEach((d) => {
+      const kat = (d.KETERANGAN || "").toLowerCase();
+      const rawTd = (d.KETERANGAN || "").toString();
+      const isLaki = (d.JK || "").toUpperCase() === "L";
+      let idx = 4;
+
+      if (kat.includes("hipo") || kat.includes("rendah")) idx = 0;
+      else if (kat.includes("normal")) idx = 1;
+      else if (kat.includes("pre") || kat.includes("sedang")) idx = 2;
+      else if (kat.includes("hiper") || kat.includes("tinggi")) idx = 3;
+      else if (rawTd.includes("/")) {
+        const parts = rawTd.split("/").map((x) => parseFloat(x.trim()));
+        const sys = parts[0];
+        const dia = parts[1];
+        if (sys < 90 || dia < 60) idx = 0;
+        else if (sys <= 120 && dia <= 80) idx = 1;
+        else if (sys <= 139 || dia <= 89) idx = 2;
+        else idx = 3;
+      }
+
+      if (isLaki) tdL[idx]++;
+      else tdP[idx]++;
+    });
+
+    if (charts.lansiaTdGender) charts.lansiaTdGender.destroy();
+    charts.lansiaTdGender = new Chart(canvasTdGender, {
+      type: "bar",
+      data: {
+        labels: categoriesTd,
+        datasets: [
+          {
+            label: "Laki-laki (L)",
+            data: tdL,
+            backgroundColor: "#4f46e5",
+            borderRadius: 4,
+          },
+          {
+            label: "Perempuan (P)",
+            data: tdP,
+            backgroundColor: "#ec4899",
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      },
     });
   }
 }

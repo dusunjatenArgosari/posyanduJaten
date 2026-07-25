@@ -7,7 +7,10 @@
     <!-- Tailwind CSS & Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
@@ -16,19 +19,40 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <a href="index.html" class="flex items-center space-x-3">
-            <i class="fa-solid font-bold text-2xl fa-heart-pulse text-emerald-300"></i>
-            <span class="font-bold text-lg tracking-wide">Posyandu Dusun Jaten</span>
+            <i
+              class="fa-solid font-bold text-2xl fa-heart-pulse text-emerald-300"
+            ></i>
+            <span class="font-bold text-lg tracking-wide"
+              >Posyandu Dusun Jaten</span
+            >
           </a>
 
           <div class="hidden md:flex space-x-2">
-            <a href="index.html" class="bg-emerald-800 px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
-            <a href="lansia.html" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 transition">Tracking Lansia</a>
-            <a href="remaja.html" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 transition">Tracking Remaja</a>
+            <a
+              href="index.html"
+              class="bg-emerald-800 px-3 py-2 rounded-md text-sm font-medium"
+              >Dashboard</a
+            >
+            <a
+              href="lansia.html"
+              class="px-3 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 transition"
+              >Tracking Lansia</a
+            >
+            <a
+              href="remaja.html"
+              class="px-3 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 transition"
+              >Tracking Remaja</a
+            >
           </div>
 
           <div>
-            <a href="admin.html" id="nav-admin-btn" class="bg-emerald-900 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2">
-              <i class="fa-solid fa-user-lock"></i> <span id="admin-btn-text">Login Admin</span>
+            <a
+              href="admin.html"
+              id="nav-admin-btn"
+              class="bg-emerald-900 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2"
+            >
+              <i class="fa-solid fa-user-lock"></i>
+              <span id="admin-btn-text">Login Admin</span>
             </a>
           </div>
         </div>
@@ -36,73 +60,230 @@
 
       <div class="md:hidden flex justify-around bg-emerald-800 py-2 text-xs">
         <a href="index.html" class="text-white font-bold">Dashboard</a>
-        <a href="lansia.html" class="text-white hover:text-emerald-200">Lansia</a>
-        <a href="remaja.html" class="text-white hover:text-emerald-200">Remaja</a>
+        <a href="lansia.html" class="text-white hover:text-emerald-200"
+          >Lansia</a
+        >
+        <a href="remaja.html" class="text-white hover:text-emerald-200"
+          >Remaja</a
+        >
         <a href="admin.html" class="text-white hover:text-emerald-200">Admin</a>
       </div>
     </nav>
 
     <!-- MAIN CONTENT -->
-    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-      <!-- ADMIN BANNER -->
-      <div id="admin-banner" class="hidden p-4 bg-amber-50 border-l-4 border-amber-500 text-amber-900 rounded-r-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <p class="font-bold flex items-center gap-2"><i class="fa-solid fa-shield-halved text-amber-600"></i> Sesi Admin Aktif</p>
-          <p class="text-xs text-amber-700">Anda memiliki akses penuh untuk melakukan pengelolaan data di Google Sheets.</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button onclick="openSpreadsheet()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-semibold transition flex items-center gap-2 shadow">
-            <i class="fa-solid fa-file-excel"></i> Kelola Data (Google Sheets)
-          </button>
-          <button onclick="logoutAdmin()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-md text-sm font-semibold transition">Logout</button>
+    <main class="container mx-auto px-4 py-8 max-w-7xl">
+      <!-- 1. Hero Banner -->
+      <div
+        class="bg-gradient-to-r from-indigo-600 to-sky-600 rounded-3xl p-6 md:p-8 text-white shadow-lg mb-8 relative overflow-hidden"
+      >
+        <div class="relative z-10 max-w-2xl">
+          <span
+            class="px-3 py-1 bg-white/20 text-xs font-semibold rounded-full uppercase tracking-wider backdrop-blur-md"
+          >
+            Sistem Informasi Kesehatan Dusun Jaten
+          </span>
+          <h1 class="text-2xl md:text-4xl font-extrabold mt-3">
+            Monitoring Kesehatan Posyandu Lansia & Remaja
+          </h1>
+          <p class="text-indigo-100 text-sm md:text-base mt-2">
+            Pantau status Indeks Massa Tubuh (IMT) dan Tekanan Darah warga
+            secara realtime, terintegrasi langsung dengan database Google
+            Sheets.
+          </p>
+
+          <!-- Quick Action Buttons -->
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a
+              href="remaja.html"
+              class="px-4 py-2.5 bg-white text-indigo-600 font-bold rounded-xl text-sm hover:bg-slate-100 transition shadow-sm"
+            >
+              <i class="fa-solid fa-child-reaching mr-2"></i>Data Remaja
+            </a>
+            <a
+              href="lansia.html"
+              class="px-4 py-2.5 bg-indigo-500/50 text-white font-bold rounded-xl text-sm hover:bg-indigo-500/70 backdrop-blur-md transition border border-white/20"
+            >
+              <i class="fa-solid fa-person-cane mr-2"></i>Data Lansia
+            </a>
+            <button
+              onclick="toggleModalPemeriksaan(true)"
+              class="admin-only hidden px-4 py-2.5 bg-emerald-500 text-white font-bold rounded-xl text-sm hover:bg-emerald-600 transition shadow-md"
+            >
+              <i class="fa-solid fa-plus-circle mr-2"></i>Catat Pemeriksaan
+            </button>
+          </div>
         </div>
       </div>
 
-      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-        <h1 class="text-2xl font-bold text-slate-800">Sistem Tracking Kesehatan Dusun Jaten</h1>
-        <p class="text-slate-500 text-sm mt-1">Visualisasi data demografi dan pemantauan kesehatan warga secara real-time.</p>
+      <!-- 2. Kartu Ringkasan Statistik -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div
+          class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between"
+        >
+          <div>
+            <p class="text-xs text-slate-500 font-semibold uppercase">
+              Total Warga Terdaftar
+            </p>
+            <h3
+              id="stat-total"
+              class="text-3xl font-extrabold text-slate-800 mt-1"
+            >
+              0
+            </h3>
+          </div>
+          <div
+            class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl font-bold"
+          >
+            <i class="fa-solid fa-users"></i>
+          </div>
+        </div>
+
+        <div
+          class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between"
+        >
+          <div>
+            <p class="text-xs text-slate-500 font-semibold uppercase">
+              Warga Lansia
+            </p>
+            <h3
+              id="stat-lansia"
+              class="text-3xl font-extrabold text-indigo-600 mt-1"
+            >
+              0
+            </h3>
+          </div>
+          <div
+            class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl font-bold"
+          >
+            <i class="fa-solid fa-person-cane"></i>
+          </div>
+        </div>
+
+        <div
+          class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between"
+        >
+          <div>
+            <p class="text-xs text-slate-500 font-semibold uppercase">
+              Warga Remaja
+            </p>
+            <h3
+              id="stat-remaja"
+              class="text-3xl font-extrabold text-sky-600 mt-1"
+            >
+              0
+            </h3>
+          </div>
+          <div
+            class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl font-bold"
+          >
+            <i class="fa-solid fa-child"></i>
+          </div>
+        </div>
+
+        <div
+          class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between"
+        >
+          <div>
+            <p class="text-xs text-slate-500 font-semibold uppercase">
+              Terperiksa Bulan Ini
+            </p>
+            <h3
+              id="stat-terperiksa"
+              class="text-3xl font-extrabold text-emerald-600 mt-1"
+            >
+              0
+            </h3>
+          </div>
+          <div
+            class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold"
+          >
+            <i class="fa-solid fa-heart-pulse"></i>
+          </div>
+        </div>
       </div>
 
-      <!-- Metric Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-          <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Terdata</p>
-            <h3 id="stat-total" class="text-3xl font-extrabold text-slate-800 mt-1">-</h3>
-          </div>
-          <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg"><i class="fa-solid fa-users text-2xl"></i></div>
+      <!-- 3. Grid Visualisasi Chart Dashboard -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Chart 1: Demografi Kategori -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <h3 class="font-bold text-slate-800 text-base mb-1">
+            Proporsi Kategori Warga
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">
+            Perbandingan jumlah Lansia & Remaja
+          </p>
+          <div class="h-60 relative"><canvas id="chart-kategori"></canvas></div>
         </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-          <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kategori Lansia</p>
-            <h3 id="stat-lansia" class="text-3xl font-extrabold text-indigo-600 mt-1">-</h3>
-          </div>
-          <div class="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><i class="fa-solid fa-person-cane text-2xl"></i></div>
+
+        <!-- Chart 2: Demografi Gender -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <h3 class="font-bold text-slate-800 text-base mb-1">
+            Distribusi Gender Warga
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">
+            Perbandingan Laki-laki vs Perempuan
+          </p>
+          <div class="h-60 relative"><canvas id="chart-gender"></canvas></div>
         </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-          <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kategori Remaja</p>
-            <h3 id="stat-remaja" class="text-3xl font-extrabold text-sky-600 mt-1">-</h3>
+
+        <!-- Chart 3: Ringkasan Status IMT Gabungan -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <h3 class="font-bold text-slate-800 text-base mb-1">
+            Ringkasan IMT Seluruh Warga
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">
+            Status gizi gabungan Lansia & Remaja
+          </p>
+          <div class="h-60 relative">
+            <canvas id="chart-dashboard-imt"></canvas>
           </div>
-          <div class="p-3 bg-sky-50 text-sky-600 rounded-lg"><i class="fa-solid fa-child-reaching text-2xl"></i></div>
         </div>
       </div>
 
-      <!-- Charts -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <h3 class="font-bold text-slate-700 mb-4">Distribusi Kategori Warga</h3>
-          <div class="h-64 flex justify-center"><canvas id="chart-kategori"></canvas></div>
+      <!-- 4. Tabel Pemeriksaan Terbaru -->
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h3 class="font-bold text-slate-800 text-base">
+              Aktivitas Pemeriksaan Terbaru
+            </h3>
+            <p class="text-xs text-slate-400">
+              Daftar warga yang baru saja melakukan pengecekan kesehatan
+            </p>
+          </div>
+          <a
+            href="remaja.html"
+            class="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+            >Lihat Semua <i class="fa-solid fa-arrow-right ml-1"></i
+          ></a>
         </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <h3 class="font-bold text-slate-700 mb-4">Rasio Jenis Kelamin</h3>
-          <div class="h-64 flex justify-center"><canvas id="chart-gender"></canvas></div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+              <tr>
+                <th class="p-3">ID Warga</th>
+                <th class="p-3">Nama / Kategori</th>
+                <th class="p-3">RT</th>
+                <th class="p-3">Nilai IMT</th>
+                <th class="p-3">Tekanan Darah</th>
+                <th class="p-3">Tanggal Periksa</th>
+              </tr>
+            </thead>
+            <tbody id="table-dashboard-recent">
+              <!-- Diisi otomatis via app.js -->
+            </tbody>
+          </table>
         </div>
       </div>
     </main>
 
-    <footer class="bg-slate-800 text-slate-400 py-6 text-center text-xs mt-auto">
-      <p>&copy; 2026 Posyandu Dusun Jaten. Powered by Google Sheets Database.</p>
+    <footer
+      class="bg-slate-800 text-slate-400 py-6 text-center text-xs mt-auto"
+    >
+      <p>
+        &copy; 2026 Posyandu Dusun Jaten. Powered by Google Sheets Database.
+      </p>
     </footer>
 
     <script src="app.js"></script>
