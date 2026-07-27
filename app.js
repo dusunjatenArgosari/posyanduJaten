@@ -361,7 +361,7 @@ function renderLansiaView(lansiaData) {
     if (guestNotice) guestNotice.classList.remove("hidden");
   }
 
-  // 1. Ringkasan Statistik Kartu
+  // Ringkasan Statistik Kartu
   const elTotal = document.getElementById("stat-lansia-total");
   const elL = document.getElementById("stat-lansia-l");
   const elP = document.getElementById("stat-lansia-p");
@@ -377,7 +377,7 @@ function renderLansiaView(lansiaData) {
   if (elL) elL.innerText = lCount;
   if (elP) elP.innerText = pCount;
 
-  // 2. Render Tabel Data
+  // Render Tabel Data
   const tbody = document.getElementById("table-lansia-body");
   if (tbody && isAdmin) {
     tbody.innerHTML =
@@ -398,7 +398,7 @@ function renderLansiaView(lansiaData) {
       `<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada data lansia</td></tr>`;
   }
 
-  // 3. Chart Gender Lansia (Bar Chart)
+  // Chart 1: Gender Lansia (Bar Chart)
   const canvasGender = document.getElementById("chart-lansia-gender");
   if (canvasGender) {
     if (charts.lansiaGender) charts.lansiaGender.destroy();
@@ -424,7 +424,7 @@ function renderLansiaView(lansiaData) {
     });
   }
 
-  // 4. Chart Kelompok Usia Lansia (Doughnut Chart)
+  // Chart 2: Kelompok Usia Lansia (Doughnut Chart - Warna Beda & Kontras)
   const canvasUsia = document.getElementById("chart-lansia-usia");
   if (canvasUsia) {
     let kelUsia = {
@@ -449,7 +449,7 @@ function renderLansiaView(lansiaData) {
         datasets: [
           {
             data: Object.values(kelUsia),
-            backgroundColor: ["#6366f1", "#818cf8", "#a5b4fc", "#cbd5e1"],
+            backgroundColor: ["#14b8a6", "#3b82f6", "#6366f1", "#94a3b8"],
           },
         ],
       },
@@ -461,12 +461,12 @@ function renderLansiaView(lansiaData) {
     });
   }
 
-  // 5. Chart IMT Lansia (Pie Chart)
+  // Chart 3: IMT Lansia (Pie Chart - Pewarnaan Bermakna/Semantik Risiko)
   const canvasImt = document.getElementById("chart-lansia-imt");
   if (canvasImt) {
     let imtData = {
-      "Underweight (<18.5)": 0,
       "Normal (18.5-24.9)": 0,
+      "Underweight (<18.5)": 0,
       "Overweight (25-29.9)": 0,
       "Obesitas (≥30)": 0,
       "Belum Diukur": 0,
@@ -475,10 +475,14 @@ function renderLansiaView(lansiaData) {
       const kat = (d.KATEGORI_IMT || "").toLowerCase();
       const val = parseFloat(d.IMT);
 
-      if (kat.includes("kurang") || kat.includes("underweight") || val < 18.5)
-        imtData["Underweight (<18.5)"]++;
-      else if (kat.includes("normal") || (val >= 18.5 && val <= 24.9))
+      if (kat.includes("normal") || (val >= 18.5 && val <= 24.9))
         imtData["Normal (18.5-24.9)"]++;
+      else if (
+        kat.includes("kurang") ||
+        kat.includes("underweight") ||
+        val < 18.5
+      )
+        imtData["Underweight (<18.5)"]++;
       else if (
         kat.includes("lebih") ||
         kat.includes("overweight") ||
@@ -499,10 +503,10 @@ function renderLansiaView(lansiaData) {
           {
             data: Object.values(imtData),
             backgroundColor: [
-              "#38bdf8",
               "#10b981",
               "#f59e0b",
-              "#ef4444",
+              "#f97316",
+              "#dc2626",
               "#cbd5e1",
             ],
           },
@@ -516,12 +520,12 @@ function renderLansiaView(lansiaData) {
     });
   }
 
-  // 6. Chart IMT Berdasarkan Gender (Grouped Bar Chart)
+  // Chart 4: IMT Berdasarkan Gender (Grouped Bar Chart)
   const canvasImtGender = document.getElementById("chart-lansia-imt-gender");
   if (canvasImtGender) {
     const categories = [
-      "Underweight",
       "Normal",
+      "Underweight",
       "Overweight",
       "Obesitas",
       "Belum Diukur",
@@ -535,9 +539,13 @@ function renderLansiaView(lansiaData) {
       const isLaki = (d.JK || "").toUpperCase() === "L";
       let idx = 4;
 
-      if (kat.includes("kurang") || kat.includes("underweight") || val < 18.5)
-        idx = 0;
-      else if (kat.includes("normal") || (val >= 18.5 && val <= 24.9)) idx = 1;
+      if (kat.includes("normal") || (val >= 18.5 && val <= 24.9)) idx = 0;
+      else if (
+        kat.includes("kurang") ||
+        kat.includes("underweight") ||
+        val < 18.5
+      )
+        idx = 1;
       else if (
         kat.includes("lebih") ||
         kat.includes("overweight") ||
@@ -579,62 +587,56 @@ function renderLansiaView(lansiaData) {
     });
   }
 
-  // 7. Chart Tekanan Darah Lansia (Bar Chart)
+  // Chart 5: Tekanan Darah Lansia (Line Chart & Label Rentang Medis)
   const canvasTd = document.getElementById("chart-lansia-td");
   if (canvasTd) {
     let tdData = {
-      "Hipotensi (<90/60)": 0,
-      "Normal (90-120/60-80)": 0,
-      "Pre-Hipertensi (120-139/80-89)": 0,
-      "Hipertensi (≥140/90)": 0,
+      "< 90/60 mmHg": 0,
+      "90-120 / 60-80 mmHg": 0,
+      "120-139 / 80-89 mmHg": 0,
+      "≥ 140/90 mmHg": 0,
       "Belum Diukur": 0,
     };
+
     lansiaData.forEach((d) => {
       const kat = (d.KETERANGAN || "").toLowerCase();
       const rawTd = (d.KETERANGAN || "").toString();
 
       if (kat.includes("hipo") || kat.includes("rendah"))
-        tdData["Hipotensi (<90/60)"]++;
-      else if (kat.includes("normal")) tdData["Normal (90-120/60-80)"]++;
+        tdData["< 90/60 mmHg"]++;
+      else if (kat.includes("normal")) tdData["90-120 / 60-80 mmHg"]++;
       else if (kat.includes("pre") || kat.includes("sedang"))
-        tdData["Pre-Hipertensi (120-139/80-89)"]++;
+        tdData["120-139 / 80-89 mmHg"]++;
       else if (kat.includes("hiper") || kat.includes("tinggi"))
-        tdData["Hipertensi (≥140/90)"]++;
+        tdData["≥ 140/90 mmHg"]++;
       else if (rawTd.includes("/")) {
         const parts = rawTd.split("/").map((x) => parseFloat(x.trim()));
         const sys = parts[0];
         const dia = parts[1];
-        if (sys < 90 || dia < 60) tdData["Hipotensi (<90/60)"]++;
-        else if (sys <= 120 && dia <= 80) tdData["Normal (90-120/60-80)"]++;
-        else if (sys <= 139 || dia <= 89)
-          tdData["Pre-Hipertensi (120-139/80-89)"]++;
-        else tdData["Hipertensi (≥140/90)"]++;
-      } else tdData["Belum Diukur"]++;
+        if (sys < 90 || dia < 60) tdData["< 90/60 mmHg"]++;
+        else if (sys <= 120 && dia <= 80) tdData["90-120 / 60-80 mmHg"]++;
+        else if (sys <= 139 || dia <= 89) tdData["120-139 / 80-89 mmHg"]++;
+        else tdData["≥ 140/90 mmHg"]++;
+      } else {
+        tdData["Belum Diukur"]++;
+      }
     });
 
     if (charts.lansiaTd) charts.lansiaTd.destroy();
     charts.lansiaTd = new Chart(canvasTd, {
-      type: "bar",
+      type: "line",
       data: {
-        labels: [
-          "Hipotensi",
-          "Normal",
-          "Pre-Hipertensi",
-          "Hipertensi",
-          "Belum Diukur",
-        ],
+        labels: Object.keys(tdData),
         datasets: [
           {
             label: "Jumlah Lansia",
             data: Object.values(tdData),
-            backgroundColor: [
-              "#38bdf8",
-              "#10b981",
-              "#f59e0b",
-              "#ef4444",
-              "#94a3b8",
-            ],
-            borderRadius: 6,
+            borderColor: "#0284c7",
+            backgroundColor: "rgba(2, 132, 199, 0.1)",
+            fill: true,
+            tension: 0.3,
+            pointRadius: 5,
+            pointBackgroundColor: "#0284c7",
           },
         ],
       },
@@ -647,14 +649,14 @@ function renderLansiaView(lansiaData) {
     });
   }
 
-  // 8. Chart Tekanan Darah Berdasarkan Gender (Grouped Bar Chart)
+  // Chart 6: Tekanan Darah Berdasarkan Gender (Grouped Bar Chart & Label Rentang Medis)
   const canvasTdGender = document.getElementById("chart-lansia-td-gender");
   if (canvasTdGender) {
     const categoriesTd = [
-      "Hipotensi",
-      "Normal",
-      "Pre-Hipertensi",
-      "Hipertensi",
+      "< 90/60",
+      "90-120/60-80",
+      "120-139/80-89",
+      "≥ 140/90",
       "Belum Diukur",
     ];
     let tdL = [0, 0, 0, 0, 0];
@@ -720,7 +722,7 @@ function renderRemajaView(remajaData) {
   const tableContainer = document.getElementById("container-table-remaja");
   const guestNotice = document.getElementById("guest-notice-remaja");
 
-  // Kontrol Akses Fitur Daftar Warga Remaja
+  // Access Control Tabel
   if (isAdmin) {
     if (tableContainer) tableContainer.classList.remove("hidden");
     if (guestNotice) guestNotice.classList.add("hidden");
@@ -729,7 +731,7 @@ function renderRemajaView(remajaData) {
     if (guestNotice) guestNotice.classList.remove("hidden");
   }
 
-  // 1. Update Kartu Ringkasan
+  // Ringkasan Statistik Kartu
   const elTotal = document.getElementById("stat-remaja-total");
   const elL = document.getElementById("stat-remaja-l");
   const elP = document.getElementById("stat-remaja-p");
@@ -745,7 +747,7 @@ function renderRemajaView(remajaData) {
   if (elL) elL.innerText = lCount;
   if (elP) elP.innerText = pCount;
 
-  // 2. Render Tabel Remaja (Hanya jika Admin)
+  // Render Tabel Data
   const tbody = document.getElementById("table-remaja-body");
   if (tbody && isAdmin) {
     tbody.innerHTML =
@@ -757,18 +759,16 @@ function renderRemajaView(remajaData) {
         <td class="p-3">${item.NAMA_LENGKAP || "-"}</td>
         <td class="p-3">${item.JK || "-"}</td>
         <td class="p-3">${item.USIA ? item.USIA + " th" : "-"}</td>
-        <td class="p-3">${item.IMT || item.KATEGORI_IMT || "-"}</td>
-        <td class="p-3">${item.TEKANAN_DARAH || item.KATEGORI_TD || "-"}</td>
         <td class="p-3"><span class="px-2 py-1 bg-slate-100 rounded text-xs">RT ${item.RT || "-"}</span></td>
         <td class="p-3 text-xs text-slate-400">${item.LAST_UPDATED || "-"}</td>
       </tr>
     `,
         )
         .join("") ||
-      `<tr><td colspan="7" class="p-4 text-center text-slate-400">Tidak ada data remaja</td></tr>`;
+      `<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada data remaja</td></tr>`;
   }
 
-  // 3. Render Diagram Batang: Jenis Kelamin Remaja
+  // Chart 1: Gender Remaja (Bar Chart)
   const canvasGender = document.getElementById("chart-remaja-gender");
   if (canvasGender) {
     if (charts.remajaGender) charts.remajaGender.destroy();
@@ -794,23 +794,19 @@ function renderRemajaView(remajaData) {
     });
   }
 
-  // 4. Render Diagram Doughnut: Kelompok Usia Remaja
+  // Chart 2: Kelompok Usia Remaja (Doughnut Chart - Warna Beda & Kontras)
   const canvasUsia = document.getElementById("chart-remaja-usia");
   if (canvasUsia) {
     let kelUsia = {
-      "< 12 th": 0,
-      "12 - 15 th": 0,
-      "16 - 19 th": 0,
-      "≥ 20 th": 0,
+      "10 - 14 th": 0,
+      "15 - 18 th": 0,
       "Belum terisi": 0,
     };
     remajaData.forEach((d) => {
       const u = parseFloat(d.USIA);
       if (isNaN(u) || d.USIA === "") kelUsia["Belum terisi"]++;
-      else if (u < 12) kelUsia["< 12 th"]++;
-      else if (u <= 15) kelUsia["12 - 15 th"]++;
-      else if (u <= 19) kelUsia["16 - 19 th"]++;
-      else kelUsia["≥ 20 th"]++;
+      else if (u <= 14) kelUsia["10 - 14 th"]++;
+      else kelUsia["15 - 18 th"]++;
     });
 
     if (charts.remajaUsia) charts.remajaUsia.destroy();
@@ -821,13 +817,7 @@ function renderRemajaView(remajaData) {
         datasets: [
           {
             data: Object.values(kelUsia),
-            backgroundColor: [
-              "#38bdf8",
-              "#0284c7",
-              "#0369a1",
-              "#075985",
-              "#cbd5e1",
-            ],
+            backgroundColor: ["#06b6d4", "#3b82f6", "#94a3b8"],
           },
         ],
       },
@@ -839,12 +829,12 @@ function renderRemajaView(remajaData) {
     });
   }
 
-  // 5. Render Chart IMT
+  // Chart 3: IMT Remaja (Pie Chart - Pewarnaan Bermakna/Semantik Risiko)
   const canvasImt = document.getElementById("chart-remaja-imt");
   if (canvasImt) {
     let imtData = {
-      "Underweight (<18.5)": 0,
       "Normal (18.5-24.9)": 0,
+      "Underweight (<18.5)": 0,
       "Overweight (25-29.9)": 0,
       "Obesitas (≥30)": 0,
       "Belum Diukur": 0,
@@ -853,17 +843,21 @@ function renderRemajaView(remajaData) {
       const kat = (d.KATEGORI_IMT || "").toLowerCase();
       const val = parseFloat(d.IMT);
 
-      if (kat.includes("kurang") || kat.includes("underweight") || val < 18.5)
-        imtData["Underweight (<18.5)"]++;
-      else if (kat.includes("normal") || (val >= 18.5 && val <= 24.9))
+      if (kat.includes("normal") || (val >= 18.5 && val <= 24.9))
         imtData["Normal (18.5-24.9)"]++;
+      else if (
+        kat.includes("kurang") ||
+        kat.includes("underweight") ||
+        val < 18.5
+      )
+        imtData["Underweight (<18.5)"]++;
       else if (
         kat.includes("lebih") ||
         kat.includes("overweight") ||
         (val >= 25 && val <= 29.9)
       )
         imtData["Overweight (25-29.9)"]++;
-      else if (kat.includes("(obesitas)") || val >= 30)
+      else if (kat.includes("obesitas") || val >= 30)
         imtData["Obesitas (≥30)"]++;
       else imtData["Belum Diukur"]++;
     });
@@ -877,10 +871,10 @@ function renderRemajaView(remajaData) {
           {
             data: Object.values(imtData),
             backgroundColor: [
-              "#38bdf8",
               "#10b981",
               "#f59e0b",
-              "#ef4444",
+              "#f97316",
+              "#dc2626",
               "#cbd5e1",
             ],
           },
@@ -894,79 +888,12 @@ function renderRemajaView(remajaData) {
     });
   }
 
-  // 6. Render Chart Tekanan Darah
-  const canvasTd = document.getElementById("chart-remaja-td");
-  if (canvasTd) {
-    let tdData = {
-      "Hipotensi (<90/60)": 0,
-      "Normal (90-120/60-80)": 0,
-      "Pre-Hipertensi (120-139/80-89)": 0,
-      "Hipertensi (≥140/90)": 0,
-      "Belum Diukur": 0,
-    };
-    remajaData.forEach((d) => {
-      const kat = (d.KETERANGAN || "").toLowerCase();
-      const rawTd = (d.KETERANGAN || "").toString();
-
-      if (kat.includes("hipo") || kat.includes("rendah"))
-        tdData["Hipotensi (<90/60)"]++;
-      else if (kat.includes("normal")) tdData["Normal (90-120/60-80)"]++;
-      else if (kat.includes("pre") || kat.includes("sedang"))
-        tdData["Pre-Hipertensi (120-139/80-89)"]++;
-      else if (kat.includes("hiper") || kat.includes("tinggi"))
-        tdData["Hipertensi (≥140/90)"]++;
-      else if (rawTd.includes("/")) {
-        const parts = rawTd.split("/").map((x) => parseFloat(x.trim()));
-        const sys = parts[0];
-        const dia = parts[1];
-        if (sys < 90 || dia < 60) tdData["Hipotensi (<90/60)"]++;
-        else if (sys <= 120 && dia <= 80) tdData["Normal (90-120/60-80)"]++;
-        else if (sys <= 139 || dia <= 89)
-          tdData["Pre-Hipertensi (120-139/80-89)"]++;
-        else tdData["Hipertensi (≥140/90)"]++;
-      } else tdData["Belum Diukur"]++;
-    });
-
-    if (charts.remajaTd) charts.remajaTd.destroy();
-    charts.remajaTd = new Chart(canvasTd, {
-      type: "bar",
-      data: {
-        labels: [
-          "Hipotensi",
-          "Normal",
-          "Pre-Hipertensi",
-          "Hipertensi",
-          "Belum Diukur",
-        ],
-        datasets: [
-          {
-            label: "Jumlah Remaja",
-            data: Object.values(tdData),
-            backgroundColor: [
-              "#38bdf8",
-              "#10b981",
-              "#f59e0b",
-              "#ef4444",
-              "#94a3b8",
-            ],
-            borderRadius: 6,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-      },
-    });
-  }
-  // 5. Chart IMT berdasarkan Jenis Kelamin (Grouped Bar Chart)
+  // Chart 4: IMT Berdasarkan Gender (Grouped Bar Chart)
   const canvasImtGender = document.getElementById("chart-remaja-imt-gender");
   if (canvasImtGender) {
     const categories = [
-      "Underweight",
       "Normal",
+      "Underweight",
       "Overweight",
       "Obesitas",
       "Belum Diukur",
@@ -978,11 +905,15 @@ function renderRemajaView(remajaData) {
       const kat = (d.KATEGORI_IMT || "").toLowerCase();
       const val = parseFloat(d.IMT);
       const isLaki = (d.JK || "").toUpperCase() === "L";
-      let idx = 4; // Default: Belum Diukur
+      let idx = 4;
 
-      if (kat.includes("kurang") || kat.includes("underweight") || val < 18.5)
-        idx = 0;
-      else if (kat.includes("normal") || (val >= 18.5 && val <= 24.9)) idx = 1;
+      if (kat.includes("normal") || (val >= 18.5 && val <= 24.9)) idx = 0;
+      else if (
+        kat.includes("kurang") ||
+        kat.includes("underweight") ||
+        val < 18.5
+      )
+        idx = 1;
       else if (
         kat.includes("lebih") ||
         kat.includes("overweight") ||
@@ -1024,14 +955,76 @@ function renderRemajaView(remajaData) {
     });
   }
 
-  // 6. Chart Tekanan Darah berdasarkan Jenis Kelamin (Grouped Bar Chart)
+  // Chart 5: Tekanan Darah Remaja (Line Chart & Label Rentang Medis)
+  const canvasTd = document.getElementById("chart-remaja-td");
+  if (canvasTd) {
+    let tdData = {
+      "< 90/60 mmHg": 0,
+      "90-120 / 60-80 mmHg": 0,
+      "120-139 / 80-89 mmHg": 0,
+      "≥ 140/90 mmHg": 0,
+      "Belum Diukur": 0,
+    };
+
+    remajaData.forEach((d) => {
+      const kat = (d.KETERANGAN || "").toLowerCase();
+      const rawTd = (d.KETERANGAN || "").toString();
+
+      if (kat.includes("hipo") || kat.includes("rendah"))
+        tdData["< 90/60 mmHg"]++;
+      else if (kat.includes("normal")) tdData["90-120 / 60-80 mmHg"]++;
+      else if (kat.includes("pre") || kat.includes("sedang"))
+        tdData["120-139 / 80-89 mmHg"]++;
+      else if (kat.includes("hiper") || kat.includes("tinggi"))
+        tdData["≥ 140/90 mmHg"]++;
+      else if (rawTd.includes("/")) {
+        const parts = rawTd.split("/").map((x) => parseFloat(x.trim()));
+        const sys = parts[0];
+        const dia = parts[1];
+        if (sys < 90 || dia < 60) tdData["< 90/60 mmHg"]++;
+        else if (sys <= 120 && dia <= 80) tdData["90-120 / 60-80 mmHg"]++;
+        else if (sys <= 139 || dia <= 89) tdData["120-139 / 80-89 mmHg"]++;
+        else tdData["≥ 140/90 mmHg"]++;
+      } else {
+        tdData["Belum Diukur"]++;
+      }
+    });
+
+    if (charts.remajaTd) charts.remajaTd.destroy();
+    charts.remajaTd = new Chart(canvasTd, {
+      type: "line",
+      data: {
+        labels: Object.keys(tdData),
+        datasets: [
+          {
+            label: "Jumlah Remaja",
+            data: Object.values(tdData),
+            borderColor: "#0d9488",
+            backgroundColor: "rgba(13, 148, 136, 0.1)",
+            fill: true,
+            tension: 0.3,
+            pointRadius: 5,
+            pointBackgroundColor: "#0d9488",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      },
+    });
+  }
+
+  // Chart 6: Tekanan Darah Berdasarkan Gender (Grouped Bar Chart & Label Rentang Medis)
   const canvasTdGender = document.getElementById("chart-remaja-td-gender");
   if (canvasTdGender) {
     const categoriesTd = [
-      "Hipotensi",
-      "Normal",
-      "Pre-Hipertensi",
-      "Hipertensi",
+      "< 90/60",
+      "90-120/60-80",
+      "120-139/80-89",
+      "≥ 140/90",
       "Belum Diukur",
     ];
     let tdL = [0, 0, 0, 0, 0];
@@ -1041,7 +1034,7 @@ function renderRemajaView(remajaData) {
       const kat = (d.KETERANGAN || "").toLowerCase();
       const rawTd = (d.KETERANGAN || "").toString();
       const isLaki = (d.JK || "").toUpperCase() === "L";
-      let idx = 4; // Default: Belum Diukur
+      let idx = 4;
 
       if (kat.includes("hipo") || kat.includes("rendah")) idx = 0;
       else if (kat.includes("normal")) idx = 1;
